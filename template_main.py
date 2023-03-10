@@ -7,9 +7,8 @@ if __name__ == '__main__':
     if not sys.path.__contains__(install_dir):
         sys.path.append(install_dir)
 
-    # TODO import right modules
     modules = [
-        "maya_app"
+        "CollectorCopier"
     ]
 
     from utils import *
@@ -18,8 +17,8 @@ if __name__ == '__main__':
     for module in modules:
         importlib.import_module(module)
 
-    # TODO import the app
-    import maya_app
+    import CollectorCopier
+    from CollectorCopier import *
 
-    # TODO rename app variable
-    maya_app.run()
+    collector_copier = CollectorCopier()
+    collector_copier.run()
