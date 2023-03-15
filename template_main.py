@@ -21,4 +21,4 @@ if __name__ == '__main__':
     from CollectorCopier import *
 
     collector_copier = CollectorCopier()
-    collector_copier.run()
+    collector_copier.run_collect()
