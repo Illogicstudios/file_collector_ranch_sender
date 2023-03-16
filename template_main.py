@@ -2,7 +2,7 @@ import sys
 import importlib
 
 if __name__ == '__main__':
-    # TODO specify the right path
+    # TODO specify the right paths
     install_dir = 'PATH/TO/file_collector_ranch_sender'
     arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
     if not sys.path.__contains__(install_dir):
@@ -23,5 +23,7 @@ if __name__ == '__main__':
     import CollectorCopier
     from CollectorCopier import *
 
-    collector_copier = CollectorCopier()
+    __FORCE_OVERRIDE_ASS_PATHS_FILES = False
+
+    collector_copier = CollectorCopier(__FORCE_OVERRIDE_ASS_PATHS_FILES)
     collector_copier.run_collect()

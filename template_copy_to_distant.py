@@ -4,7 +4,7 @@ import time
 import importlib
 import threading
 
-# TODO specify the right path
+# TODO specify the right paths
 install_dir = 'PATH/TO/file_collector_ranch_sender'
 arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 if not sys.path.__contains__(install_dir):
@@ -22,5 +22,5 @@ import CollectorCopier
 from CollectorCopier import *
 
 collector_copier = CollectorCopier()
-collector_copier.retrieve_datas(sys.argv[1])
+collector_copier.__retrieve_datas(sys.argv[1])
 collector_copier.run_copy()

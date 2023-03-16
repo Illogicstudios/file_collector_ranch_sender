@@ -10,7 +10,7 @@ https://github.com/Illogicstudios/common
 You must specify the correct path of the installation folder and of the Arnold SDK in the ```template_main.py``` file :
 ```python
 if __name__ == '__main__':
-    # TODO specify the right path
+    # TODO specify the right paths
     install_dir = 'PATH/TO/file_collector_ranch_sender'
     arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
     # [...]
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
 You must also specify the same paths in ```template_copy_to_distant.py``` file :
 ```python
-# TODO specify the right path
+# TODO specify the right paths
 install_dir = 'PATH/TO/file_collector_ranch_sender'
 arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 ```
