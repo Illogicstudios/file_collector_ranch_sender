@@ -1,6 +1,6 @@
-# TemplateNoUI Tool
+# File Collector Ranch Sender
 
-> TemplateNoUI is a tool to ...
+> File Collector Ranch Sender is a tool to copy all file that are in a Maya scene on a distant server
 
 ## How to install
 
@@ -25,14 +25,22 @@ arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 
 ---
 
-## Feature
+[//]: # (## Feature)
 
-<div align="center">
-  <span>
-    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>
-  </span>
-  <p weight="bold">Caption</p>
-  <br/>
-</div>
+[//]: # ()
+[//]: # (<div align="center">)
 
-[...]
+[//]: # (  <span>)
+
+[//]: # (    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>)
+
+[//]: # (  </span>)
+
+[//]: # (  <p weight="bold">Caption</p>)
+
+[//]: # (  <br/>)
+
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # ([...])
