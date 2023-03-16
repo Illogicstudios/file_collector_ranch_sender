@@ -23,6 +23,20 @@ install_dir = 'PATH/TO/file_collector_ranch_sender'
 arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 ```
 
+Change some parameters in ```CollectorCopier.py``` file to copy the file where you want:
+```python
+# ######################################################################################################################
+
+_RANCH_SERVER = "RANCH-126"
+_RANCH_FOLDER = "ranch_cache"
+_MAX_NB_THREADs = 256
+
+_LOGS_FOLDER = "I:/logs"
+_ASS_PATHS_FILE_EXTENSION = "paths"
+
+# ######################################################################################################################
+```
+
 ---
 
 [//]: # (## Feature)
