@@ -9,7 +9,6 @@ import subprocess
 from queue import Queue
 import sys
 
-sys.path.append(r"R:\pipeline\networkInstall\arnold\Arnold-7.1.4.1-windows")
 from arnold import *
 
 from utils import *
@@ -28,7 +27,7 @@ _MAX_NB_THREADs = 256
 
 _LOGS_FOLDER = "I:/logs"
 _ASS_PATHS_FILE_EXTENSION = "paths"
-_FORCE_CREATION_ASS_PATHS_FILES = False
+_FORCE_OVERRIDE_ASS_PATHS_FILES = False
 
 # ######################################################################################################################
 
@@ -97,7 +96,7 @@ class CollectorCopier:
         self.__total_file_size = 0
         self.__current_file_size = 0
         self.__total_file_nb = 0
-        self.__current_file_nb = 0
+        self.__current_file_nb = 1
         self.__current_data_index = 0
         self.__datas_length = len(self.__datas)
         self.__max_length_path = 0
@@ -143,7 +142,6 @@ class CollectorCopier:
         # Output Logs
         with self.__progress_lock:
             self.__current_file_size += size_src
-            self.__current_file_nb += 1
             percent_copied = round(self.__current_file_size / self.__total_file_size * 100, 2)
             str_percent = str(percent_copied).rjust(5) + "%"
             str_file_count = (str(self.__current_file_nb) + "/" + str(self.__total_file_nb)).rjust(
@@ -151,6 +149,7 @@ class CollectorCopier:
             msg = "Copy On RANCH of" if do_copy else "File already exists"
             complete_msg = "| " + str_percent + " - " + str_file_count + " - " + msg + " : " + path_src + " "
             self.__output_queue.put(complete_msg.ljust(str_length, " ") + "|")
+            self.__current_file_nb += 1
 
     # Thread of copy : It takes the data of the current file and copy it. It then take the next available
     def __thread_copy_file(self):
@@ -227,28 +226,58 @@ class CollectorCopier:
             self.__output_queue.put(
                 msg.ljust(self.__max_length_path + count_file_str_length + _LENGTH_PADDING, "-") + "+")
 
+    def __get_path_with_udim(self, path):
+        paths=[]
+        folder, filename = os.path.split(path)
+        match_udim = re.match(r"^(.*\.)[0-9]{4}(\.\w*)$", filename)
+        if match_udim:
+            start = match_udim.group(1)
+            ext = match_udim.group(2)
+            for file in os.listdir(folder):
+                match_udim = re.match(r"^"+start+r"[0-9]{4}"+ext+r"$", file)
+                if match_udim:
+                    paths.append(os.path.join(folder,file))
+        return paths if len(paths)>0 else [path]
+
     # Retrieve all the paths used in Maya Scene
     def __retrieve_paths_in_maya(self):
         count_path = 1
         list_files = ls(type="file")
+        list_images = ls(type="aiImage")
         list_standins = ls(type='aiStandIn')
         list_refs = ls(references=True)
-        nb_tot = len(list_files) + len(list_standins) + len(list_refs)
+        nb_tot = len(list_files) + len(list_images) + len(list_standins) + len(list_refs)
         paths = []
         # FILES
-        self.__output("| ----- Retrieve paths in FileNodes")
+        if len(list_files) > 0 : self.__output("| ----- Retrieve paths in FileNodes")
         for file in list_files:
             path = file.fileTextureName.get()
             if os.path.exists(path):
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - FileNode path found : " + path)
-                paths.append(path)
+                udim_paths = self.__get_path_with_udim(path)
+                for path in udim_paths:
+                    self.__output(
+                        "| " + str(count_path) + "/" + str(nb_tot) + " - FileNode path found : " + path)
+                    paths.append(path)
             else:
                 self.__output(
                     "| " + str(count_path) + "/" + str(nb_tot) + " - Error FileNode path do not exists : " + path)
             count_path += 1
+        # Image
+        if len(list_images) > 0 : self.__output("| ----- Retrieve paths in Images")
+        for image in list_images:
+            path = image.filename.get()
+            if os.path.exists(path):
+                udim_paths = self.__get_path_with_udim(path)
+                for path in udim_paths:
+                    self.__output(
+                        "| " + str(count_path) + "/" + str(nb_tot) + " - FileNode path found : " + path)
+                    paths.append(path)
+            else:
+                self.__output(
+                    "| " + str(count_path) + "/" + str(nb_tot) + " - Error Image path do not exists : " + path)
+            count_path += 1
         # STANDIN
-        self.__output("| ----- Retrieve paths in StandIns")
+        if len(list_standins) > 0 : self.__output("| ----- Retrieve paths in StandIns")
         for standin in list_standins:
             path = standin.dso.get()
             standin_error = False
@@ -275,7 +304,7 @@ class CollectorCopier:
                     "| " + str(count_path) + "/" + str(nb_tot) + " - Error StandIn dso do not exists : " + path)
             count_path += 1
         # REFERENCES
-        self.__output("| ----- Retrieve paths in References")
+        if len(list_refs) > 0 : self.__output("| ----- Retrieve paths in References")
         for ref in list_refs:
             path = referenceQuery(ref, filename=True)
             if os.path.exists(path):
@@ -294,43 +323,55 @@ class CollectorCopier:
 
     def __retrieve_ass_paths(self):
         list_standin = ls(type='aiStandIn')
+        list_include_graph = ls(type='aiIncludeGraph')
         ass_paths_count = 0
         i = 1
-        dsos = []
+        ass_files = []
+        # Standin
         for standin in list_standin:
-            dso = standin.dso.get()
-            if dso not in dsos:
-                dsos.append(dso)
+            ass_file = standin.dso.get()
+            abc_layer = standin.abc_layers.get()
+            if ass_file not in ass_files:
+                ass_files.append(ass_file)
+            if abc_layer is not None and abc_layer not in ass_files:
+                ass_files.append(abc_layer)
+        # IncludeGraph
+        for include_graph in list_include_graph:
+            ass_file = include_graph.filename.get()
+            if ass_file not in ass_files:
+                ass_files.append(ass_file)
 
-        nb_dsos = len(dsos)
+        nb_ass_files = len(ass_files)
         # Iterate through StandIn
-        for dso in dsos:
-            AiBegin(AI_SESSION_BATCH)
-            AiMsgSetConsoleFlags(AI_LOG_ALL)
+        for ass_file in ass_files:
             ass_paths = []
             relative_paths = []
             texture_search_paths = []
-            match = re.match(r"^(.*)\.\w*$", os.path.basename(dso))
-            paths_info_filepath = os.path.join(os.path.dirname(dso), match.group(1) + "." + _ASS_PATHS_FILE_EXTENSION)
+            match = re.match(r"^(.*)\.\w*$", os.path.basename(ass_file))
+            paths_info_filepath = os.path.join(os.path.dirname(ass_file),
+                                               match.group(1) + "." + _ASS_PATHS_FILE_EXTENSION)
 
             paths_info_file_exits = os.path.exists(paths_info_filepath)
 
-            str_dso_count = str(i) + "/" + str(nb_dsos)
-            if paths_info_file_exits and not _FORCE_CREATION_ASS_PATHS_FILES:
+            str_ass_count = str(i) + "/" + str(nb_ass_files)
+            if paths_info_file_exits and not _FORCE_OVERRIDE_ASS_PATHS_FILES:
                 self.__output(
-                    "| " + str_dso_count + " - Paths info already exists for " + dso)
+                    "| " + str_ass_count + " - Paths info already exists for " + ass_file)
                 path_info_file = open(paths_info_filepath, "r")
                 ass_paths = json.loads(path_info_file.read())
                 if len(ass_paths) > 0:
                     self.__output("\n".join(["|    +----> " + path for path in ass_paths]))
             else:
+
+                AiBegin(AI_SESSION_BATCH)
+                AiMsgSetConsoleFlags(AI_LOG_ALL)
                 if paths_info_file_exits:
                     open(paths_info_filepath, "w").close()
 
                 path_info_file = open(paths_info_filepath, "a")
 
-                AiASSLoad(dso)
-                self.__output("| " + str_dso_count + " - Search in " + dso)
+                AiASSLoad(ass_file)
+                self.__output("| " + str_ass_count + " - Search in " + ass_file)
                 # Iterate through Node in StandIn that are Options or Shaders
                 iterator = AiUniverseGetNodeIterator(AI_NODE_SHADER | AI_NODE_OPTIONS)
                 while not AiNodeIteratorFinished(iterator):
@@ -349,6 +390,7 @@ class CollectorCopier:
                             texture_search_paths = AiNodeGetStr(node, "texture_searchpath")
 
                 AiNodeIteratorDestroy(iterator)
+                AiEnd()
                 if len(relative_paths) > 0:
                     for base_path in texture_search_paths.split(";"):
                         # If all file processed stop the search
@@ -368,7 +410,8 @@ class CollectorCopier:
                         for rel_path in relative_paths:
                             absolute_path = os.path.join(base_path, rel_path)
                             if os.path.exists(absolute_path):
-                                ass_paths.append(absolute_path)
+                                if absolute_path not in ass_paths:
+                                    ass_paths.append(absolute_path)
                                 self.__output("|    +----> " + absolute_path)
                                 rel_path_to_remove.append(rel_path)
                         if len(rel_path_to_remove) > 0:
@@ -380,9 +423,11 @@ class CollectorCopier:
 
             path_info_file = open(paths_info_filepath, "r")
             ass_paths = json.loads(path_info_file.read())
-            ass_paths_count += len(ass_paths)
-            self.__datas.extend(ass_paths)
-            AiEnd()
+            for ass_path in ass_paths:
+                if ass_path not in self.__datas:
+                    self.__datas.append(ass_path)
+                    ass_paths_count+=1
+
             i += 1
         return ass_paths_count
 
