@@ -289,9 +289,11 @@ class CollectorCopier:
                 while not AiNodeIteratorFinished(iterator):
                     node = AiNodeIteratorGetNext(iterator)
                     node_name = AiNodeGetName(node)
+                    print_var(node_name)
                     if node_name:
                         is_image = AiNodeIs(node, "image")
                         is_options = AiNodeIs(node, "options")
+                        print_var(node_name,is_image, is_options)
                         # If IMAGE Retrieve the filepath
                         if is_image:
                             filename = AiNodeGetStr(node, "filename")
