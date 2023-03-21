@@ -6,11 +6,8 @@ import threading
 
 # TODO specify the right paths
 install_dir = 'PATH/TO/file_collector_ranch_sender'
-arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 if not sys.path.__contains__(install_dir):
     sys.path.append(install_dir)
-if not sys.path.__contains__(arnold_sdk_dir):
-    sys.path.append(arnold_sdk_dir)
 
 modules = [
     "CollectorCopier"
