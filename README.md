@@ -7,31 +7,29 @@
 You will need some files that several Illogic tools need. You can get them via this link :
 https://github.com/Illogicstudios/common
 
-You must specify the correct path of the installation folder and of the Arnold SDK in the ```template_main.py``` file :
+You must specify the correct path of the installation folder :
 ```python
 if __name__ == '__main__':
     # TODO specify the right paths
     install_dir = 'PATH/TO/file_collector_ranch_sender'
-    arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
     # [...]
 ```
 
-You must also specify the same paths in ```template_copy_to_distant.py``` file :
+You must also specify the same path in ```template_copy_to_distant.py``` file :
 ```python
 # TODO specify the right paths
 install_dir = 'PATH/TO/file_collector_ranch_sender'
-arnold_sdk_dir = "OTHER/PATHTO/Arnold-7.1.4.1-windows"
 ```
 
 Change some parameters in ```CollectorCopier.py``` file to copy the file where you want:
 ```python
+
 # ######################################################################################################################
 
-_RANCH_SERVER = "RANCH-126"
-_RANCH_FOLDER = "ranch_cache"
-_MAX_NB_THREADs = 256
+_RANCH_CACHE_FOLDER = "I:/ranch/ranch_cache"
+_LOGS_FOLDER = "I:/ranch/logs"
+_MAX_NB_THREADs = 32
 
-_LOGS_FOLDER = "I:/logs"
 _ASS_PATHS_FILE_EXTENSION = "paths"
 
 # ######################################################################################################################
