@@ -28,6 +28,8 @@ _MAX_NB_THREADs = 32
 
 _ASS_PATHS_FILE_EXTENSION = "paths"
 
+_RELATIVE_SEARCH_DISK = ["I:", "B:", "R:"]
+
 # ######################################################################################################################
 
 # 18 + Length of longer message possible (here : "File already exists")
@@ -124,20 +126,48 @@ class CollectorCopier:
                 time.sleep(0.5)
 
     # #################################################### COLLECT #####################################################
-    def __get_path_with_udim(self, path):
+    def __get_paths_with_udim(self, path):
         paths = []
         folder, filename = os.path.split(path)
         match_udim = re.match(r"^(.*\.)(?:<udim>|[0-9]{4})(\.\w*)$", filename)
-        if match_udim and os.path.exists(folder):
+
+        if match_udim:
             start = match_udim.group(1)
             ext = match_udim.group(2)
-            for file in os.listdir(folder):
-                match_udim = re.match(r"^" + start + r"[0-9]{4}" + ext + r"$", file)
-                if match_udim:
-                    paths.append(os.path.join(folder, file))
-            return paths if len(paths) > 0 else [path]
+            if os.path.exists(folder):
+                for file in os.listdir(folder):
+                    match_udim = re.match(r"^" + start + r"[0-9]{4}" + ext + r"$", file)
+                    if match_udim:
+                        paths.append(os.path.join(folder, file))
+            return paths if len(paths) > 0 else []
         else:
-            return []
+            return [path] if os.path.exists(folder) else []
+
+    # Retrieve the paths in a FileNode, An AiImage, a StandIn or a Reference
+    # Check the UDIMS and if the path is relative
+    def __retrieve_path_in_elem(self, count_path, nb_tot, path, type, field, check_relative_path=True):
+        paths = []
+        if os.path.exists(path):
+            # Get all the paths if udim or only the current path
+            paths_found = self.__get_paths_with_udim(path)
+            for path in paths_found:
+                self.__output(
+                    "| " + str(count_path) + "/" + str(nb_tot) + " - " + type + " " + field + " found : " + path)
+                paths.append(path)
+        else:
+            if check_relative_path:
+                for disk in _RELATIVE_SEARCH_DISK:
+                    path_with_disk = disk + "/" + path
+                    paths_found = self.__retrieve_path_in_elem(count_path, nb_tot, path_with_disk, type, field, False)
+                    if len(paths_found) > 0:
+                        paths = paths_found
+                        break
+
+        if len(paths) == 0 and check_relative_path:
+            self.__output(
+                "| " + str(count_path) + "/" + str(
+                    nb_tot) + " - Error " + type + " " + field + " do not exists : " + path)
+        return paths
 
     # Retrieve all the paths used in Maya Scene
     def __retrieve_paths_in_maya(self):
@@ -155,68 +185,29 @@ class CollectorCopier:
         if len(list_files) > 0: self.__output("| ----- Retrieve paths in FileNodes")
         for file in list_files:
             path = file.fileTextureName.get()
-            if os.path.exists(path):
-                # Get all the paths if udim or only the current path
-                udim_paths = self.__get_path_with_udim(path)
-                for path in udim_paths:
-                    self.__output(
-                        "| " + str(count_path) + "/" + str(nb_tot) + " - FileNode path found : " + path)
-                    paths.append(path)
-            else:
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - Error FileNode path do not exists : " + path)
+            paths.extend(self.__retrieve_path_in_elem(count_path, nb_tot, path, "FileNode", "texture path"))
             count_path += 1
-        # Image
+        # IMAGES
         if len(list_images) > 0: self.__output("| ----- Retrieve paths in Images")
         for image in list_images:
             path = image.filename.get()
-            if os.path.exists(path):
-                # Get all the paths if udim or only the current path
-                udim_paths = self.__get_path_with_udim(path)
-                for path in udim_paths:
-                    self.__output(
-                        "| " + str(count_path) + "/" + str(nb_tot) + " - FileNode path found : " + path)
-                    paths.append(path)
-            else:
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - Error Image path do not exists : " + path)
+            paths.extend(self.__retrieve_path_in_elem(count_path, nb_tot, path, "Image", "path"))
             count_path += 1
-        # STANDIN
+        # STANDINS
         if len(list_standins) > 0: self.__output("| ----- Retrieve paths in StandIns")
         for standin in list_standins:
             path = standin.dso.get()
-            standin_error = False
-            # If Sequence get all the frames within the directory
-            if standin.useFrameExtension.get():
-                dir_path = os.path.dirname(path)
-                if os.path.exists(dir_path):
-                    self.__output(
-                        "| " + str(count_path) + "/" + str(nb_tot) + " - StandIn sequence found in : " + dir_path + "/")
-                else:
-                    standin_error = True
-            elif os.path.exists(path):
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - StandIn dso found : " + path)
-                paths.append(path)
-            else:
-                standin_error = True
-            if standin_error:
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - Error StandIn dso do not exists : " + path)
+            paths.extend(self.__retrieve_path_in_elem(count_path, nb_tot, path, "StandIn", "dso"))
             count_path += 1
         # REFERENCES
         if len(list_refs) > 0: self.__output("| ----- Retrieve paths in References")
         for ref in list_refs:
             path = referenceQuery(ref, filename=True)
-            if os.path.exists(path):
-                self.__output("| " + str(count_path) + "/" + str(nb_tot) + " - Reference path found : " + path)
-                paths.append(path)
-            else:
-                self.__output(
-                    "| " + str(count_path) + "/" + str(nb_tot) + " - Error Reference path do not exists : " + path)
+            paths.extend(self.__retrieve_path_in_elem(count_path, nb_tot, path, "Reference", "path"))
             count_path += 1
-        nb_added = 0
+
         # Add to the datas
+        nb_added = 0
         for path in paths:
             if path not in self.__datas:
                 nb_added += 1
@@ -251,7 +242,7 @@ class CollectorCopier:
                 pre_ass_files.append(ass_file)
 
         for pre_ass_file in pre_ass_files:
-            if pre_ass_file not in ass_files and re.match(ass_regexp,pre_ass_file) and os.path.exists(pre_ass_file):
+            if pre_ass_file not in ass_files and re.match(ass_regexp, pre_ass_file) and os.path.exists(pre_ass_file):
                 ass_files.append(pre_ass_file)
 
         nb_ass_files = len(ass_files)
@@ -267,6 +258,7 @@ class CollectorCopier:
             paths_info_file_exits = os.path.exists(paths_info_filepath)
 
             str_ass_count = str(i) + "/" + str(nb_ass_files)
+            # If the path file already exists we just retrieve the datas it contains instead of searching for it
             if paths_info_file_exits and not self.__force_override_ass_paths_files:
                 self.__output(
                     "| " + str_ass_count + " - Paths info already exists for " + ass_file)
@@ -275,9 +267,8 @@ class CollectorCopier:
                 if len(ass_paths) > 0:
                     self.__output("\n".join(["|    +----> " + path for path in ass_paths]))
             else:
-
-                AiBegin(AI_SESSION_BATCH)
-                AiMsgSetConsoleFlags(AI_LOG_ALL)
+                # If the path file does not exists or if we want to force its creation we search for all the paths
+                # in the .ass file
                 if paths_info_file_exits:
                     open(paths_info_filepath, "w").close()
 
@@ -295,14 +286,14 @@ class CollectorCopier:
                 # Find all filenames with paths that match the pattern
                 matches = re.findall(pattern, contents)
                 options = re.findall(pattern_option, contents)
-                if len(options)>0:
+                if len(options) > 0:
                     texture_search_paths = options[0].split(";")
                 for match in matches:
                     if os.path.exists(match) and match not in ass_paths:
                         ass_paths.append(match)
                         self.__output("|    +----> " + match)
                     else:
-                        udim_paths = self.__get_path_with_udim(match)
+                        udim_paths = self.__get_paths_with_udim(match)
                         if len(udim_paths) > 0:
                             for udim_path in udim_paths:
                                 if os.path.exists(udim_path) and udim_path not in ass_paths:
@@ -342,7 +333,6 @@ class CollectorCopier:
 
                 path_info_file.write(json.dumps(ass_paths))
                 path_info_file.close()
-
 
             path_info_file = open(paths_info_filepath, "r")
             ass_paths = json.loads(path_info_file.read())
@@ -395,9 +385,8 @@ class CollectorCopier:
         except Exception as e:
             # Error while copying
             with self.__progress_lock:
-                msg = "| error while copying "+path_src+" : " + str(e)
+                msg = "| error while copying " + path_src + " : " + str(e)
                 self.__output_queue.put(msg.ljust(str_length, " ") + "|")
-
 
     # Thread of copy : It takes the data of the current file and copy it. It then take the next available
     def __thread_copy_file(self):
