@@ -62,7 +62,6 @@ class CollectorCopier:
         self.__log_file_name = ""
         self.__log_file = None
         self.__data_file_name = ""
-        self.__scene_datas = {}
         self.__reinit_copy_attributes()
         self.__datas_lock = threading.Lock()
         self.__progress_lock = threading.Lock()
@@ -404,9 +403,6 @@ class CollectorCopier:
                 # Copy the current file
                 self.__copy_from_data(file_datas)
 
-    def __thread_scene_copy(self):
-        self.__copy_from_data(self.__scene_datas)
-
     # Copy all the files retrieved
     def __copy(self):
         time_start = time.time()
@@ -428,9 +424,6 @@ class CollectorCopier:
         for data_copy in self.__datas:
             self.__total_file_size += data_copy["size"]
             self.__max_length_path = max(self.__max_length_path, len(data_copy["src"]))
-        self.__total_file_size += self.__scene_datas["size"]
-        self.__total_file_nb += 1
-        self.__max_length_path = max(self.__max_length_path, len(self.__scene_datas["src"]))
         threads = []
 
         count_file_str_length = 2 * len(str(self.__datas_length)) + 1
@@ -452,12 +445,6 @@ class CollectorCopier:
         # Join All Threads
         for th in threads:
             th.join()
-        # At the end when all files have been copied we can copy the scene
-        with self.__datas_lock:
-            th = threading.Thread(target=self.__thread_scene_copy)
-            th.start()
-            th.join()
-            # self.__copy_from_data(self.__scene_datas)
 
         with self.__progress_lock:
             msg = "+- Copy On RANCH Finished ----- " + \
@@ -517,10 +504,6 @@ class CollectorCopier:
             if data is not None:
                 ranged_cache_paths.append(data)
         self.__datas = ranged_cache_paths
-        if os.path.exists(self.__scene_path):
-            scene_datas = CollectorCopier.__generate_data_for_path(self.__scene_path)
-            if scene_datas is not None:
-                self.__scene_datas = scene_datas
 
     # ###################################################### RUN #######################################################
 
