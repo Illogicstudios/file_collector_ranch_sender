@@ -28,7 +28,7 @@ _MAX_NB_THREADs = 32
 
 _ASS_PATHS_FILE_EXTENSION = "paths"
 
-_RELATIVE_SEARCH_DISK = ["I:", "B:", "R:"]
+_RELATIVE_SEARCH_DISK = ["I:/", "B:/", "R:/"]
 
 # ######################################################################################################################
 
@@ -156,7 +156,7 @@ class CollectorCopier:
         else:
             if check_relative_path:
                 for disk in _RELATIVE_SEARCH_DISK:
-                    path_with_disk = disk + "/" + path
+                    path_with_disk = os.path.join(disk, path)
                     paths_found = self.__retrieve_path_in_elem(count_path, nb_tot, path_with_disk, type, field, False)
                     if len(paths_found) > 0:
                         paths = paths_found
@@ -303,7 +303,10 @@ class CollectorCopier:
                         else:
                             relative_paths.append(match)
 
-                if len(relative_paths) > 0 and len(texture_search_paths) > 0:
+                if len(relative_paths) > 0:
+                    if len(texture_search_paths) == 0:
+                        texture_search_paths = _RELATIVE_SEARCH_DISK
+
                     for base_path in texture_search_paths:
                         # If all file processed stop the search
                         if len(relative_paths) == 0:
