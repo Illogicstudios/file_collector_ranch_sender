@@ -216,7 +216,12 @@ class CollectorCopier:
         # REFERENCES
         if len(list_refs) > 0: self.__output("| ----- Retrieve paths in References")
         for ref in list_refs:
-            path = referenceQuery(ref, filename=True)
+            try:
+                path = referenceQuery(ref, filename=True)
+            except Exception:
+                self.__output("| " + str(count_path) + "/" + str(nb_tot) +
+                              " - Error Reference node not associated to reference file : " + ref)
+                continue
             reference_paths = self.__retrieve_dependent_paths(path)
             if len(reference_paths)==0:
                 self.__output("| " + str(count_path) + "/" + str(nb_tot) +
@@ -549,14 +554,14 @@ class CollectorCopier:
         # MAYA PATHS
         self.__retrieve_paths_in_maya()
         # ASS PATHS
-        self.__retrieve_ass_paths()
+        # self.__retrieve_ass_paths()
 
         # COPY
-        self.__store_datas()
-        dirname = os.path.dirname(__file__)
-        si = subprocess.STARTUPINFO()
-        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        subprocess.Popen(["python", os.path.join(dirname, "copy_to_distant.py"), self.__data_file_name], startupinfo=si)
+        # self.__store_datas()
+        # dirname = os.path.dirname(__file__)
+        # si = subprocess.STARTUPINFO()
+        # si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        # subprocess.Popen(["python", os.path.join(dirname, "copy_to_distant.py"), self.__data_file_name], startupinfo=si)
 
         self.__stop_log()
 
