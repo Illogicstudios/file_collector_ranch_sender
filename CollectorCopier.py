@@ -131,7 +131,7 @@ class CollectorCopier:
         if not os.path.exists(folder):
             return []
 
-        match_udim = re.match(r"^(.*)(?:<udim>|[0-9]{4})(\.\w*)$", filename)
+        match_udim = re.match(r"^(.*)(?:<udim>|[0-9]{4})(.*)$", filename)
         if match_udim:
             start = match_udim.group(1)
             ext = match_udim.group(2)
