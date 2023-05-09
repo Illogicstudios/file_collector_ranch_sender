@@ -1,4 +1,5 @@
 assets/collector_copier_logs
+copy_to_distant.py
 
 .idea
 
